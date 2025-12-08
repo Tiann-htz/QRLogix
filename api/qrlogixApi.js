@@ -1,9 +1,9 @@
 const mysql = require('mysql2/promise');
 
-// Create MySQL connection pool (better for serverless)
+// Create MySQL connection pool with explicit configuration
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || 'mysql-205300-0.cloudclusters.net',
-  port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT) : 10037,
+  port: parseInt(process.env.MYSQL_PORT || '10037'),
   user: process.env.MYSQL_USER || 'admin',
   password: process.env.MYSQL_PASSWORD || 'dCDlAyb5',
   database: process.env.MYSQL_DATABASE || 'qrlogix',
@@ -35,16 +35,17 @@ module.exports = async (req, res) => {
         hasUser: !!process.env.MYSQL_USER,
         hasPassword: !!process.env.MYSQL_PASSWORD,
         hasDatabase: !!process.env.MYSQL_DATABASE,
-        host: process.env.MYSQL_HOST || 'NOT SET - using fallback: mysql-205300-0.cloudclusters.net',
-        port: process.env.MYSQL_PORT || 'NOT SET - using fallback: 10037',
-        database: process.env.MYSQL_DATABASE || 'NOT SET - using fallback: qrlogix',
-        user: process.env.MYSQL_USER || 'NOT SET - using fallback: admin'
+        host: process.env.MYSQL_HOST || 'NOT SET - using fallback',
+        port: process.env.MYSQL_PORT || 'NOT SET - using fallback',
+        database: process.env.MYSQL_DATABASE || 'NOT SET - using fallback',
+        user: process.env.MYSQL_USER || 'NOT SET - using fallback'
       };
 
       // Test database connection
       let dbStatus = 'Not tested';
+      let connection;
       try {
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
         dbStatus = 'Connected successfully!';
         connection.release();
       } catch (dbError) {
@@ -53,9 +54,9 @@ module.exports = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: 'API is working! (Updated version with full diagnostics)',
+        message: 'API is working!',
         timestamp: new Date().toISOString(),
-        version: '2.0',
+        version: '3.0',
         envCheck: envInfo,
         databaseConnection: dbStatus
       });
@@ -65,8 +66,13 @@ module.exports = async (req, res) => {
     if (endpoint === 'signup' && req.method === 'POST') {
       const { firstName, lastName, email, password } = req.body;
 
-      console.log('Signup attempt for:', email);
-      console.log('Using database:', process.env.MYSQL_DATABASE || 'qrlogix (fallback)');
+      console.log('=== SIGNUP REQUEST START ===');
+      console.log('Email:', email);
+      console.log('Pool config:', {
+        host: pool.pool.config.connectionConfig.host,
+        port: pool.pool.config.connectionConfig.port,
+        database: pool.pool.config.connectionConfig.database
+      });
 
       // Validate input
       if (!firstName || !lastName || !email || !password) {
@@ -78,15 +84,17 @@ module.exports = async (req, res) => {
 
       let connection;
       try {
-        // Get connection from pool
+        console.log('Attempting to get connection from pool...');
         connection = await pool.getConnection();
-        console.log('Database connected successfully');
+        console.log('✓ Connection obtained successfully');
 
         // Check if email already exists
+        console.log('Checking for existing user...');
         const [existingUsers] = await connection.execute(
           'SELECT * FROM user WHERE email = ?',
           [email]
         );
+        console.log('Existing users found:', existingUsers.length);
 
         if (existingUsers.length > 0) {
           connection.release();
@@ -97,13 +105,15 @@ module.exports = async (req, res) => {
         }
 
         // Insert new user
+        console.log('Inserting new user...');
         const [result] = await connection.execute(
           'INSERT INTO user (first_name, last_name, email, password, user_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
           [firstName, lastName, email, password, 'user']
         );
 
         connection.release();
-        console.log('User created successfully:', result.insertId);
+        console.log('✓ User created successfully! ID:', result.insertId);
+        console.log('=== SIGNUP REQUEST SUCCESS ===');
 
         return res.status(201).json({
           success: true,
@@ -112,7 +122,12 @@ module.exports = async (req, res) => {
         });
       } catch (dbError) {
         if (connection) connection.release();
-        console.error('Database error:', dbError);
+        console.error('!!! DATABASE ERROR !!!');
+        console.error('Error code:', dbError.code);
+        console.error('Error message:', dbError.message);
+        console.error('Full error:', dbError);
+        console.log('=== SIGNUP REQUEST FAILED ===');
+        
         return res.status(500).json({
           success: false,
           message: 'Database error',

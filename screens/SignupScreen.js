@@ -14,7 +14,7 @@ import {
 import axios from 'axios';
 
 // REPLACE THIS URL AFTER DEPLOYMENT
-const API_URL = 'https://qrlogixendpoint-77mp0ai1r-chris-projects-51501687.vercel.app/api/qrlogixApi';
+const API_URL = 'https://qr-logix.vercel.app/api/qrlogixApi';
 
 export default function SignupScreen({ navigation }) {
   const [firstName, setFirstName] = useState('');
