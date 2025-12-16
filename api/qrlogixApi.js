@@ -6,7 +6,7 @@ const pool = mysql.createPool({
   port: parseInt(process.env.MYSQL_PORT || '10055'),
   user: process.env.MYSQL_USER || 'admin',
   password: process.env.MYSQL_PASSWORD || '5AqRf7hl',
-  database: process.env.MYSQL_DATABASE || 'qrlogix',
+  database: process.env.MYSQL_DATABASE || 'chronyx',
   connectionLimit: 10,
   waitForConnections: true,
   connectTimeout: 60000,
@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    // SIGNUP ENDPOINT - Create new user
+    // SIGNUP ENDPOINT - Create new employee
     if (endpoint === 'signup' && req.method === 'POST') {
       const { firstName, lastName, email, password } = req.body;
 
@@ -89,14 +89,14 @@ module.exports = async (req, res) => {
         console.log('✓ Connection obtained successfully');
 
         // Check if email already exists
-        console.log('Checking for existing user...');
-        const [existingUsers] = await connection.execute(
-          'SELECT * FROM user WHERE email = ?',
+        console.log('Checking for existing employee...');
+        const [existingEmployees] = await connection.execute(
+          'SELECT * FROM employee WHERE email = ?',
           [email]
         );
-        console.log('Existing users found:', existingUsers.length);
+        console.log('Existing employees found:', existingEmployees.length);
 
-        if (existingUsers.length > 0) {
+        if (existingEmployees.length > 0) {
           connection.release();
           return res.status(400).json({
             success: false,
@@ -104,15 +104,15 @@ module.exports = async (req, res) => {
           });
         }
 
-        // Insert new user
-        console.log('Inserting new user...');
+        // Insert new employee (removed user_type column)
+        console.log('Inserting new employee...');
         const [result] = await connection.execute(
-          'INSERT INTO user (first_name, last_name, email, password, user_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
-          [firstName, lastName, email, password, 'user']
+          'INSERT INTO employee (first_name, last_name, email, password, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+          [firstName, lastName, email, password]
         );
 
         connection.release();
-        console.log('✓ User created successfully! ID:', result.insertId);
+        console.log('✓ Employee created successfully! ID:', result.insertId);
         console.log('=== SIGNUP REQUEST SUCCESS ===');
 
         return res.status(201).json({
@@ -137,7 +137,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    // LOGIN ENDPOINT - Authenticate user
+    // LOGIN ENDPOINT - Authenticate employee
     if (endpoint === 'login' && req.method === 'POST') {
       const { email, password } = req.body;
 
@@ -152,14 +152,14 @@ module.exports = async (req, res) => {
       try {
         connection = await pool.getConnection();
 
-        const [users] = await connection.execute(
-          'SELECT * FROM user WHERE email = ? AND password = ?',
+        const [employees] = await connection.execute(
+          'SELECT * FROM employee WHERE email = ? AND password = ?',
           [email, password]
         );
 
         connection.release();
 
-        if (users.length === 0) {
+        if (employees.length === 0) {
           return res.status(401).json({
             success: false,
             message: 'Invalid email or password',
@@ -170,11 +170,10 @@ module.exports = async (req, res) => {
           success: true,
           message: 'Login successful',
           user: {
-            id: users[0].user_id,
-            firstName: users[0].first_name,
-            lastName: users[0].last_name,
-            email: users[0].email,
-            userType: users[0].user_type,
+            id: employees[0].employee_id,
+            firstName: employees[0].first_name,
+            lastName: employees[0].last_name,
+            email: employees[0].email,
           },
         });
       } catch (dbError) {
@@ -203,9 +202,9 @@ module.exports = async (req, res) => {
       try {
         connection = await pool.getConnection();
 
-        // Check if user already has a QR code
+        // Check if employee already has a QR code
         const [existingQR] = await connection.execute(
-          'SELECT * FROM user_qr WHERE user_id = ?',
+          'SELECT * FROM employee_qr WHERE employee_id = ?',
           [userId]
         );
 
@@ -224,7 +223,7 @@ module.exports = async (req, res) => {
 
         // Insert QR code
         await connection.execute(
-          'INSERT INTO user_qr (user_id, qr_code, first_name, last_name, email) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO employee_qr (employee_id, qr_code, first_name, last_name, email) VALUES (?, ?, ?, ?, ?)',
           [userId, qrCode, firstName, lastName, email]
         );
 
@@ -262,7 +261,7 @@ module.exports = async (req, res) => {
         connection = await pool.getConnection();
 
         const [qrRecords] = await connection.execute(
-          'SELECT qr_code, is_active, created_at FROM user_qr WHERE user_id = ?',
+          'SELECT qr_code, is_active, created_at FROM employee_qr WHERE employee_id = ?',
           [userId]
         );
 

@@ -73,6 +73,8 @@ export default function HomeScreen() {
     setShowQRModal(true);
   };
 
+  
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -103,9 +105,7 @@ export default function HomeScreen() {
           <Text style={styles.welcomeSubtitle}>
             {user?.email}
           </Text>
-          <View style={styles.userTypeBadge}>
-            <Text style={styles.userTypeText}>{user?.userType}</Text>
-          </View>
+         
 
           {/* QR Code Button */}
           <View style={styles.qrButtonContainer}>
@@ -160,10 +160,7 @@ export default function HomeScreen() {
             <Text style={styles.infoLabel}>Email:</Text>
             <Text style={styles.infoValue}>{user?.email}</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Account Type:</Text>
-            <Text style={styles.infoValue}>{user?.userType}</Text>
-          </View>
+          
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>QR Status:</Text>
             <Text style={[styles.infoValue, qrData ? styles.statusActive : styles.statusInactive]}>

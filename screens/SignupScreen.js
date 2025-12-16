@@ -71,12 +71,11 @@ export default function SignupScreen({ navigation }) {
 
         // Step 3: Create user object and auto-login
         const newUser = {
-          id: userId,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim().toLowerCase(),
-          userType: 'user'
-        };
+  id: userId,
+  firstName: firstName.trim(),
+  lastName: lastName.trim(),
+  email: email.trim().toLowerCase(),
+};
 
         Alert.alert(
           'Success!', 

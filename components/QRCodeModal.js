@@ -6,10 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
 } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 
 export default function QRCodeModal({ visible, onClose, qrData, userName }) {
+  // Generate QR code URL using a free API
+  const qrCodeUrl = qrData 
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`
+    : null;
+
   return (
     <Modal
       visible={visible}
@@ -31,16 +36,15 @@ export default function QRCodeModal({ visible, onClose, qrData, userName }) {
             {/* QR Code Display */}
             <View style={styles.qrContainer}>
               <View style={styles.qrWrapper}>
-               {qrData ? (
-  <QRCode
-    value={qrData}
-    size={250}
-    backgroundColor="#ffffff"
-    color="#000000"
-  />
-) : (
-  <Text style={styles.noQrText}>No QR Code Available</Text>
-)}
+                {qrCodeUrl ? (
+                  <Image
+                    source={{ uri: qrCodeUrl }}
+                    style={styles.qrImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text style={styles.noQrText}>No QR Code Available</Text>
+                )}
               </View>
               
               {/* User Info */}
@@ -138,6 +142,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#e2e8f0',
     marginBottom: 20,
+    width: 290,
+    height: 290,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrImage: {
+    width: 250,
+    height: 250,
   },
   noQrText: {
     fontSize: 14,
